@@ -1,0 +1,7 @@
+fastapi==0.104.1
+uvicorn==0.23.2
+pymongo==4.6.1
+pydantic==1.10.13
+python-dotenv==1.0.0
+httpx==0.25.2
+cloudinary==1.36.0
