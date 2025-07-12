@@ -5,9 +5,44 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 export interface CreateUserPayload {
   username: string
   fullname: string
+  email: string
   clerk_id: string
-  address: string
-  profile_url: string
+  address?: string
+  profile_url?: string | null
+  skills_offered?: string[]
+  skills_wanted?: string[]
+  availability?: string | null
+  is_public?: boolean
+  is_banned?: boolean
+  role?: string
+  ratings?: RatingEntry[]
+}
+
+export interface UpdateUserPayload {
+  fullname?: string
+  address?: string
+  profile_url?: string | null
+  skills_offered?: string[]
+  skills_wanted?: string[]
+  availability?: string
+  is_public?: boolean
+}
+
+export interface RatingEntry {
+  score: number
+  feedback?: string
+  rated_at: string
+}
+
+export interface SwapRequest {
+  receiver_id: string
+  requester_message?: string
+}
+
+export interface SwapUpdate {
+  status?: string
+  feedback?: string
+  rating?: number
 }
 
 export interface ApiResponse<T = any> {
@@ -17,10 +52,10 @@ export interface ApiResponse<T = any> {
   error?: string
 }
 
-// Create a new user in the backend
+// User API Functions
 export async function createUser(payload: CreateUserPayload): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/users`, {
+    const response = await fetch(`${API_BASE_URL}/users/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -48,10 +83,31 @@ export async function createUser(payload: CreateUserPayload): Promise<ApiRespons
   }
 }
 
-// Check if user exists in the backend
-export async function checkUserExists(clerkId: string): Promise<ApiResponse> {
+export async function getAllUsers(): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/${clerkId}`)
+    const response = await fetch(`${API_BASE_URL}/users/`)
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+    }
+  } catch (error) {
+    console.error("Error fetching users:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function getUserById(userId: string): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}`)
 
     if (response.ok) {
       const data = await response.json()
@@ -77,10 +133,9 @@ export async function checkUserExists(clerkId: string): Promise<ApiResponse> {
   }
 }
 
-// Update user information
-export async function updateUser(clerkId: string, payload: Partial<CreateUserPayload>): Promise<ApiResponse> {
+export async function updateUser(userId: string, payload: UpdateUserPayload): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/${clerkId}`, {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -101,6 +156,357 @@ export async function updateUser(clerkId: string, payload: Partial<CreateUserPay
     }
   } catch (error) {
     console.error("Error updating user:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function deleteUser(userId: string): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+      method: "DELETE",
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      message: "User deleted successfully",
+    }
+  } catch (error) {
+    console.error("Error deleting user:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function rateUser(userId: string, rating: { score: number; feedback?: string }): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/rate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(rating),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+      message: "Rating submitted successfully",
+    }
+  } catch (error) {
+    console.error("Error rating user:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function uploadProfilePhoto(userId: string, photoFile: File): Promise<ApiResponse> {
+  try {
+    const formData = new FormData()
+    formData.append("photo", photoFile)
+
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/upload-photo`, {
+      method: "POST",
+      body: formData,
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+      message: "Profile photo updated successfully",
+    }
+  } catch (error) {
+    console.error("Error uploading photo:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+// Swap API Functions
+export async function requestSwap(swapData: SwapRequest): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/swaps/request`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(swapData),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+      message: "Swap request sent successfully",
+    }
+  } catch (error) {
+    console.error("Error requesting swap:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function getMySwaps(): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/swaps/my-swaps`)
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+    }
+  } catch (error) {
+    console.error("Error fetching swaps:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function acceptSwap(swapId: string): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/swaps/accept/${swapId}`, {
+      method: "PUT",
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+      message: "Swap accepted successfully",
+    }
+  } catch (error) {
+    console.error("Error accepting swap:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function rejectSwap(swapId: string): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/swaps/reject/${swapId}`, {
+      method: "PUT",
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+      message: "Swap rejected successfully",
+    }
+  } catch (error) {
+    console.error("Error rejecting swap:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function cancelSwap(swapId: string): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/swaps/cancel/${swapId}`, {
+      method: "DELETE",
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      message: "Swap cancelled successfully",
+    }
+  } catch (error) {
+    console.error("Error cancelling swap:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function submitSwapFeedback(
+  swapId: string,
+  feedback: { feedback?: string; rating?: number },
+): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/swaps/feedback/${swapId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(feedback),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+      message: "Feedback submitted successfully",
+    }
+  } catch (error) {
+    console.error("Error submitting feedback:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+// Admin API Functions
+export async function getAllUsersAdmin(): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/users`)
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+    }
+  } catch (error) {
+    console.error("Error fetching admin users:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function banUser(userId: string, reason?: string): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/ban/${userId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ user_id: userId, reason }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+      message: "User banned successfully",
+    }
+  } catch (error) {
+    console.error("Error banning user:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function getAllSwapsAdmin(): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/swaps`)
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+    }
+  } catch (error) {
+    console.error("Error fetching admin swaps:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function broadcastMessage(title: string, message: string): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/broadcast`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ title, message }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+      message: "Broadcast sent successfully",
+    }
+  } catch (error) {
+    console.error("Error broadcasting message:", error)
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",
