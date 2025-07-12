@@ -31,6 +31,7 @@ export async function GET(request: Request) {
       console.log("User doesn't exist, creating new user")
     }
 
+
     // Create new user in backend with minimal data
     const payload = {
       username: user.username || user.emailAddresses[0]?.emailAddress?.split("@")[0] || `user_${user.id.slice(-6)}`,
@@ -63,12 +64,15 @@ export async function GET(request: Request) {
         body: JSON.stringify(payload),
       })
 
-      console.log("Response status:", response.status)
+      console.log("Response headers:", Object.fromEntries(response.headers.entries()))
+
 
       if (!response.ok) {
         const errorText = await response.text()
         console.error("Failed to create user:", response.status, response.statusText)
         console.error("Error response:", errorText)
+
+
       } else {
         const result = await response.json()
         console.log("User created successfully:", result)
