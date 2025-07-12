@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Search, Filter, MapPin, Star, MessageSquare, User, Plus, Loader2, X, LogIn, Send } from "lucide-react"
+import { useNavigate } from 'react-router-dom';
 
 // Static fallback users data
 const STATIC_USERS = [
@@ -395,7 +396,7 @@ const RequestSwapModal = ({ isOpen, onClose, targetUser, currentUser, onSubmit }
 
 // User Card Component
 const UserCard = ({ user, onRequestSwap, onViewProfile }) => {
-  const getLocationFromAddress = (address) => {
+  const getLocationFromAddress = (address:any) => {
     const parts = address.split(',')
     return parts.length >= 2 ? parts[parts.length - 2].trim() + ', ' + parts[parts.length - 1].trim() : address
   }
@@ -450,7 +451,7 @@ const UserCard = ({ user, onRequestSwap, onViewProfile }) => {
             Request Swap
           </button>
           <button
-            onClick={() => onViewProfile(user._id)}
+            onClick={() => onViewProfile(user.clerk_id)}
             className="flex items-center justify-center px-3 py-2 bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
           >
             <User className="w-3 h-3" />
@@ -471,7 +472,7 @@ export default function BrowsePage() {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
-
+  // const navigate = useNavigate();
   const categories = ["All", "Web Development", "Design", "Photography", "Languages", "Music", "Marketing", "Writing"]
 
   // Load users on component mount
@@ -512,7 +513,7 @@ export default function BrowsePage() {
     return matchesSearch && matchesCategory
   })
 
-  const handleRequestSwap = async (user) => {
+  const handleRequestSwap = async (user:any) => {
     if (!authService.isAuthenticated()) {
       setShowLoginModal(true)
       return
@@ -522,7 +523,7 @@ export default function BrowsePage() {
     setShowRequestModal(true)
   }
 
-  const handleSubmitSwapRequest = async (requestData) => {
+  const handleSubmitSwapRequest = async (requestData:any) => {
     try {
       await apiService.createSwapRequest(requestData)
       alert('Swap request sent successfully!')
@@ -532,9 +533,9 @@ export default function BrowsePage() {
     }
   }
 
-  const handleViewProfile = (userId) => {
+  const handleViewProfile = (userId:any) => {
     console.log('Viewing profile:', userId)
-    alert(`Opening profile for user: ${userId}`)
+    window.location.href = `/browse/user/profile/${userId}`;
   }
 
   if (loading) {
@@ -618,7 +619,7 @@ export default function BrowsePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredUsers.map((user) => (
             <UserCard
-              key={user._id}
+              key={user.clerk_id}
               user={user}
               onRequestSwap={handleRequestSwap}
               onViewProfile={handleViewProfile}
