@@ -24,7 +24,7 @@ export async function GET(request: Request) {
       if (checkResponse.ok) {
         // User already exists, redirect to dashboard
         console.log("User already exists, redirecting to dashboard")
-        return NextResponse.redirect(new URL("/dashboard", request.url))
+        return NextResponse.redirect(new URL("/browse", request.url))
       }
     } catch (error) {
       // User doesn't exist, continue to create

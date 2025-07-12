@@ -20,23 +20,22 @@ export default function SignUpPage() {
               <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                 <Zap className="w-7 h-7 text-white" />
               </div>
-              <span className="text-3xl font-bold text-white">HackTemplate</span>
+              <span className="text-3xl font-bold text-white">SkillSwap</span>
             </Link>
 
             <h1 className="text-5xl font-bold mb-6 leading-tight">
-              Start your <span className="text-emerald-200">winning</span> journey
+              Share your <span className="text-emerald-200">skills</span>, learn from others
             </h1>
 
             <p className="text-xl text-emerald-100 mb-8 leading-relaxed">
-              Join thousands of developers who are building faster and winning more hackathons. Your breakthrough
-              project starts here.
+              Join a growing community of learners and teachers. Offer your skills, request what you want to learn, and swap knowledge.
             </p>
 
             <div className="space-y-4">
               {[
-                { icon: Rocket, text: "Launch projects in minutes" },
-                { icon: Trophy, text: "Win more hackathons" },
-                { icon: Star, text: "Join the elite community" },
+                { icon: Rocket, text: "List what you know and need" },
+                { icon: Trophy, text: "Swap skills seamlessly" },
+                { icon: Star, text: "Build your reputation with feedback" },
               ].map((feature, index) => (
                 <div key={index} className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
@@ -58,10 +57,10 @@ export default function SignUpPage() {
                     ></div>
                   ))}
                 </div>
-                <span className="text-sm text-emerald-100">10,000+ developers</span>
+                <span className="text-sm text-emerald-100">5,000+ active users</span>
               </div>
               <p className="text-sm text-emerald-200">
-                "This template helped us win our first hackathon! The setup was incredibly fast." - Sarah, Developer
+                "I exchanged Photoshop lessons for Excel help. It was such a smooth and rewarding experience!" — Alex, Designer
               </p>
             </div>
           </div>
@@ -77,7 +76,7 @@ export default function SignUpPage() {
                   <Zap className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  HackTemplate
+                  SkillSwap
                 </span>
               </Link>
             </div>
@@ -86,10 +85,10 @@ export default function SignUpPage() {
             <div className="text-center">
               <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-emerald-100 to-teal-100 border border-emerald-200 text-emerald-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
                 <Sparkles className="w-4 h-4" />
-                <span>Join the winners</span>
+                <span>Join the community</span>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Create your account 🚀</h1>
-              <p className="text-gray-600">Start building your winning project today</p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Create your SkillSwap profile 🔁</h1>
+              <p className="text-gray-600">Offer your skills, request new ones, and start swapping today</p>
             </div>
 
             {/* Sign Up Form */}
@@ -117,7 +116,6 @@ export default function SignUpPage() {
                       formButtonReset: "text-emerald-600 hover:text-emerald-700",
                     },
                   }}
-                  // Direct API call after signup completion
                   redirectUrl="/api/auth/after-auth"
                 />
               </CardContent>

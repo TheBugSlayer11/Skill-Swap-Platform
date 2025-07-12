@@ -37,6 +37,8 @@ export interface RatingEntry {
 export interface SwapRequest {
   receiver_id: string
   requester_message?: string
+  offered_skill: string
+  wanted_skill: string
 }
 
 export interface SwapUpdate {
@@ -83,9 +85,15 @@ export async function createUser(payload: CreateUserPayload): Promise<ApiRespons
   }
 }
 
-export async function getAllUsers(): Promise<ApiResponse> {
+export async function getAllUsers(clerkUserId?: string): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/`)
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    }
+    if (clerkUserId) {
+      headers["x-clerk-user-id"] = clerkUserId
+    }
+    const response = await fetch(`${API_BASE_URL}/users/`, { headers })
     const data = await response.json()
 
     if (!response.ok) {
@@ -105,13 +113,18 @@ export async function getAllUsers(): Promise<ApiResponse> {
   }
 }
 
-export async function getUserById(userId: string): Promise<ApiResponse> {
+export async function getUserById(userId: string, clerkUserId?: string): Promise<ApiResponse> {
   try {
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    }
+    if (clerkUserId) {
+      headers["x-clerk-user-id"] = clerkUserId
+    }
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: headers,
+      cache: "no-store", // Always fetch fresh data
     })
 
     if (response.ok) {
@@ -260,7 +273,7 @@ export async function requestSwap(swapData: SwapRequest, userId: string): Promis
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-clerk-user-id": userId,
+        "x-clerk-user-id": userId, // Requester's Clerk ID
       },
       body: JSON.stringify(swapData),
     })

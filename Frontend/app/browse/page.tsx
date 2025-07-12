@@ -3,171 +3,99 @@
 import { useState, useEffect } from "react"
 import { AppLayout } from "@/components/app-layout"
 import { Search, Filter, MapPin, Star, MessageSquare, User, Plus, Loader2, X, LogIn, Send } from "lucide-react"
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from "@clerk/nextjs" // Import useAuth from Clerk
+import { useRouter } from "next/navigation" // Import useRouter for navigation
 
-// Static fallback users data
+// Import apiService from lib/api.ts
+import { getAllUsers, getUserById, requestSwap } from "@/lib/api"
+
+// Static fallback users data (for demo mode)
 const STATIC_USERS = [
   {
     _id: "1",
+    clerk_id: "user_static_1", // Added clerk_id for static users
     fullname: "Sarah Chen",
     username: "sarahdesigns",
-    profile_url: "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=400&h=400&fit=crop&crop=face",
+    profile_url: "/placeholder.svg?height=112&width=112",
     address: "Downtown District, San Francisco, CA",
     skills_offered: ["UI/UX Design", "Figma", "Adobe Creative Suite", "User Research"],
     skills_wanted: ["React", "JavaScript", "Frontend Development"],
     availability: "Weekends",
     rating: 4.8,
     is_public: true,
-    is_banned: false
+    is_banned: false,
   },
   {
     _id: "2",
+    clerk_id: "user_static_2",
     fullname: "Marcus Rodriguez",
     username: "marcusdev",
-    profile_url: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
+    profile_url: "/placeholder.svg?height=112&width=112",
     address: "Tech Hub, Austin, TX",
     skills_offered: ["React", "Node.js", "Python", "AWS"],
     skills_wanted: ["Mobile Development", "Swift", "Flutter"],
     availability: "Evenings",
     rating: 4.9,
     is_public: true,
-    is_banned: false
+    is_banned: false,
   },
   {
     _id: "3",
+    clerk_id: "user_static_3",
     fullname: "Elena Kowalski",
     username: "elenashots",
-    profile_url: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face",
+    profile_url: "/placeholder.svg?height=112&width=112",
     address: "Arts Quarter, Portland, OR",
     skills_offered: ["Photography", "Lightroom", "Photoshop", "Wedding Photography"],
     skills_wanted: ["Video Editing", "After Effects", "Cinematography"],
     availability: "Flexible",
     rating: 4.7,
     is_public: true,
-    is_banned: false
+    is_banned: false,
   },
   {
     _id: "4",
+    clerk_id: "user_static_4",
     fullname: "David Kim",
     username: "davidwrites",
-    profile_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
+    profile_url: "/placeholder.svg?height=112&width=112",
     address: "Financial District, New York, NY",
     skills_offered: ["Content Writing", "SEO", "Marketing Strategy", "Copywriting"],
     skills_wanted: ["Data Analysis", "Excel", "Google Analytics"],
     availability: "Weekdays",
     rating: 4.6,
     is_public: true,
-    is_banned: false
+    is_banned: false,
   },
   {
     _id: "5",
+    clerk_id: "user_static_5",
     fullname: "Maya Patel",
     username: "mayacodes",
-    profile_url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face",
+    profile_url: "/placeholder.svg?height=112&width=112",
     address: "Silicon Valley, San Jose, CA",
     skills_offered: ["Machine Learning", "Python", "Data Science", "TensorFlow"],
     skills_wanted: ["Mobile Development", "React Native", "iOS Development"],
     availability: "Weekends",
     rating: 4.9,
     is_public: true,
-    is_banned: false
+    is_banned: false,
   },
   {
     _id: "6",
+    clerk_id: "user_static_6",
     fullname: "James Wilson",
     username: "jamesmusic",
-    profile_url: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=400&h=400&fit=crop&crop=face",
+    profile_url: "/placeholder.svg?height=112&width=112",
     address: "Music District, Nashville, TN",
     skills_offered: ["Guitar", "Music Production", "Audio Engineering", "Songwriting"],
     skills_wanted: ["Piano", "Music Theory", "Violin"],
     availability: "Evenings",
     rating: 4.5,
     is_public: true,
-    is_banned: false
-  }
+    is_banned: false,
+  },
 ]
-
-// Mock current user data
-const MOCK_CURRENT_USER = {
-  id: "current_user",
-  name: "Current User",
-  skills_offered: ["JavaScript", "React", "Node.js", "Python"]
-}
-
-// API Service for backend integration
-const apiService = {
-  baseURL: 'https://880292e0-c3fc-4e31-b50c-c0d805539c08-00-2ygnkil1bylzo.pike.replit.dev',
-
-  async getAllUsers() {
-    try {
-      const response = await fetch(`${this.baseURL}/users/`)
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      return await response.json()
-    } catch (error) {
-      console.error('Error fetching users:', error)
-      throw error
-    }
-  },
-
-  async createSwapRequest(requestData) {
-    try {
-      const response = await fetch(`${this.baseURL}/swap-requests/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData)
-      })
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      return await response.json()
-    } catch (error) {
-      console.error('Error creating swap request:', error)
-      throw error
-    }
-  }
-}
-
-// Auth Service
-const authService = {
-  getCurrentUser() {
-    return MOCK_CURRENT_USER
-  },
-  
-  isAuthenticated() {
-    return !!this.getCurrentUser()
-  },
-  
-  login() {
-    alert('Redirecting to login page...')
-  }
-}
-
-// App Layout Component
-// const AppLayout = ({ children }) => {
-//   return (
-//     <div className="min-h-screen bg-gray-50">
-//       <nav className="bg-white border-b border-gray-200 px-6 py-4">
-//         <div className="max-w-7xl mx-auto flex justify-between items-center">
-//           <h1 className="text-xl font-bold text-blue-600">SkillSwap</h1>
-//           <div className="flex space-x-4">
-//             <button className="px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors">
-//               Dashboard
-//             </button>
-//             <button className="px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors">
-//               Profile
-//             </button>
-//             <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-//               Login
-//             </button>
-//           </div>
-//         </div>
-//       </nav>
-//       {children}
-//     </div>
-//   )
-// }
 
 // Skill Display Component
 const SkillDisplay = ({ skills, variant = "secondary", maxDisplay = 2 }) => {
@@ -176,16 +104,13 @@ const SkillDisplay = ({ skills, variant = "secondary", maxDisplay = 2 }) => {
   const hasMore = skills.length > maxDisplay
 
   return (
-    <div 
-      className="flex flex-wrap gap-1 relative"
-      onMouseLeave={() => setShowAll(false)}
-    >
+    <div className="flex flex-wrap gap-1 relative" onMouseLeave={() => setShowAll(false)}>
       {displaySkills.map((skill, index) => (
-        <span 
-          key={index} 
+        <span
+          key={index}
           className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-            variant === "secondary" 
-              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200" 
+            variant === "secondary"
+              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
               : "bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100"
           }`}
         >
@@ -193,7 +118,7 @@ const SkillDisplay = ({ skills, variant = "secondary", maxDisplay = 2 }) => {
         </span>
       ))}
       {hasMore && !showAll && (
-        <span 
+        <span
           className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 border border-gray-300 text-gray-700 cursor-pointer hover:bg-gray-200"
           onMouseEnter={() => setShowAll(true)}
         >
@@ -214,32 +139,27 @@ const LoginModal = ({ isOpen, onClose }) => {
       <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Login Required</h2>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <LogIn className="w-8 h-8 text-blue-600" />
           </div>
-          <p className="text-gray-600 mb-6">
-            Please login to request skill swaps and connect with other users.
-          </p>
+          <p className="text-gray-600 mb-6">Please login to request skill swaps and connect with other users.</p>
         </div>
-        
+
         <div className="space-y-3">
-          <button 
-            onClick={authService.login}
+          <a
+            href="/sign-in" // Redirect to Clerk sign-in page
             className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors"
           >
             <LogIn className="w-4 h-4 mr-2" />
             Login / Sign Up
-          </button>
-          <button 
+          </a>
+          <button
             onClick={onClose}
             className="w-full flex items-center justify-center px-4 py-3 border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
           >
@@ -260,7 +180,7 @@ const RequestSwapModal = ({ isOpen, onClose, targetUser, currentUser, onSubmit }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     if (!selectedOfferedSkill || !selectedWantedSkill || !message.trim()) {
       alert("Please fill in all fields")
       return
@@ -269,18 +189,18 @@ const RequestSwapModal = ({ isOpen, onClose, targetUser, currentUser, onSubmit }
     setLoading(true)
     try {
       await onSubmit({
-        target_user_id: targetUser._id,
-        message: message.trim(),
+        receiver_id: targetUser.clerk_id, // Use target user's Clerk ID
+        requester_message: message.trim(),
         offered_skill: selectedOfferedSkill,
-        wanted_skill: selectedWantedSkill
+        wanted_skill: selectedWantedSkill,
       })
       onClose()
       setMessage("")
       setSelectedOfferedSkill("")
       setSelectedWantedSkill("")
     } catch (error) {
-      console.error('Error submitting swap request:', error)
-      alert('Failed to send request. Please try again.')
+      console.error("Error submitting swap request:", error)
+      alert("Failed to send request. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -293,18 +213,15 @@ const RequestSwapModal = ({ isOpen, onClose, targetUser, currentUser, onSubmit }
       <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Request Skill Swap</h2>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         <div className="mb-6">
           <div className="flex items-center space-x-3 mb-4">
-            <img 
-              src={targetUser.profile_url} 
+            <img
+              src={targetUser.profile_url || "/placeholder.svg"}
               alt={targetUser.fullname}
               className="w-12 h-12 rounded-xl object-cover"
             />
@@ -314,12 +231,10 @@ const RequestSwapModal = ({ isOpen, onClose, targetUser, currentUser, onSubmit }
             </div>
           </div>
         </div>
-        
-        <div className="space-y-4">
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Choose one of your skills to offer
-            </label>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">Choose one of your skills to offer</label>
             <select
               value={selectedOfferedSkill}
               onChange={(e) => setSelectedOfferedSkill(e.target.value)}
@@ -336,9 +251,7 @@ const RequestSwapModal = ({ isOpen, onClose, targetUser, currentUser, onSubmit }
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Choose one skill you want to learn
-            </label>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">Choose one skill you want to learn</label>
             <select
               value={selectedWantedSkill}
               onChange={(e) => setSelectedWantedSkill(e.target.value)}
@@ -353,11 +266,9 @@ const RequestSwapModal = ({ isOpen, onClose, targetUser, currentUser, onSubmit }
               ))}
             </select>
           </div>
-          
+
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Your Message
-            </label>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">Your Message</label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -366,9 +277,9 @@ const RequestSwapModal = ({ isOpen, onClose, targetUser, currentUser, onSubmit }
               required
             />
           </div>
-          
+
           <div className="flex space-x-3 pt-4">
-            <button 
+            <button
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
@@ -376,20 +287,16 @@ const RequestSwapModal = ({ isOpen, onClose, targetUser, currentUser, onSubmit }
             >
               Cancel
             </button>
-            <button 
+            <button
               type="submit"
               className="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors"
               disabled={loading}
             >
-              {loading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4 mr-2" />
-              )}
+              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
               Send Request
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   )
@@ -397,9 +304,9 @@ const RequestSwapModal = ({ isOpen, onClose, targetUser, currentUser, onSubmit }
 
 // User Card Component
 const UserCard = ({ user, onRequestSwap, onViewProfile }) => {
-  const getLocationFromAddress = (address:any) => {
-    const parts = address.split(',')
-    return parts.length >= 2 ? parts[parts.length - 2].trim() + ', ' + parts[parts.length - 1].trim() : address
+  const getLocationFromAddress = (address: any) => {
+    const parts = address.split(",")
+    return parts.length >= 2 ? parts[parts.length - 2].trim() + ", " + parts[parts.length - 1].trim() : address
   }
 
   return (
@@ -407,8 +314,8 @@ const UserCard = ({ user, onRequestSwap, onViewProfile }) => {
       <div className="p-4 pb-3">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 rounded-xl overflow-hidden ring-2 ring-gray-100">
-            <img 
-              src={user.profile_url} 
+            <img
+              src={user.profile_url || "/placeholder.svg"}
               alt={user.fullname}
               className="w-full h-full object-cover"
             />
@@ -465,6 +372,8 @@ const UserCard = ({ user, onRequestSwap, onViewProfile }) => {
 
 // Main Component
 export default function BrowsePage() {
+  const { userId, isSignedIn } = useAuth() // Get Clerk user ID and signed-in status
+  const router = useRouter() // Initialize useRouter
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [users, setUsers] = useState([])
@@ -473,30 +382,51 @@ export default function BrowsePage() {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
-  // const navigate = useNavigate();
+  const [currentUserProfile, setCurrentUserProfile] = useState(null) // State for current user's profile
   const categories = ["All", "Web Development", "Design", "Photography", "Languages", "Music", "Marketing", "Writing"]
 
-  // Load users on component mount
+  // Load users and current user profile on component mount
   useEffect(() => {
-    const loadUsers = async () => {
+    const loadData = async () => {
+      setLoading(true)
+      setUsingFallback(false)
       try {
-        setLoading(true)
-        setUsingFallback(false)
-        
-        const userData = await apiService.getAllUsers()
-        const filteredUsers = userData.filter(user => user.is_public && !user.is_banned)
+        const userDataResponse = await getAllUsers(userId || undefined) // Pass Clerk ID for auth
+        if (!userDataResponse.success) {
+          throw new Error(userDataResponse.error || "Failed to fetch users")
+        }
+        const filteredUsers = userDataResponse.data.filter((user) => user.is_public && !user.is_banned)
         setUsers(filteredUsers)
+
+        if (isSignedIn && userId) {
+          const profileResponse = await getUserById(userId, userId) // Fetch current user's profile
+          if (profileResponse.success) {
+            setCurrentUserProfile(profileResponse.data)
+          } else {
+            console.error("Failed to fetch current user profile:", profileResponse.error)
+            // Handle case where current user profile might not exist in backend yet
+            setCurrentUserProfile({ clerk_id: userId, fullname: "Your Profile", skills_offered: [] })
+          }
+        }
       } catch (err) {
-        console.warn('Backend not available, using static data:', err)
+        console.warn("Backend not available or error fetching data, using static data:", err)
         setUsers(STATIC_USERS)
+        // For static users, create a mock current user profile if signed in
+        if (isSignedIn && userId) {
+          setCurrentUserProfile({
+            clerk_id: userId,
+            fullname: "Current User",
+            skills_offered: ["JavaScript", "React", "Node.js", "Python"], // Mock skills for demo
+          })
+        }
         setUsingFallback(true)
       } finally {
         setLoading(false)
       }
     }
 
-    loadUsers()
-  }, [])
+    loadData()
+  }, [userId, isSignedIn]) // Re-run when userId or isSignedIn changes
 
   // Filter users based on search and category
   const filteredUsers = users.filter((user) => {
@@ -514,29 +444,42 @@ export default function BrowsePage() {
     return matchesSearch && matchesCategory
   })
 
-  const handleRequestSwap = async (user:any) => {
-    if (!authService.isAuthenticated()) {
+  const handleRequestSwap = (user: any) => {
+    if (!isSignedIn) {
       setShowLoginModal(true)
       return
     }
-    
+    if (!currentUserProfile || !currentUserProfile.skills_offered || currentUserProfile.skills_offered.length === 0) {
+      alert("Please complete your profile by adding skills you offer before requesting a swap.")
+      router.push("/profile/complete") // Redirect to profile completion
+      return
+    }
+
     setSelectedUser(user)
     setShowRequestModal(true)
   }
 
-  const handleSubmitSwapRequest = async (requestData:any) => {
+  const handleSubmitSwapRequest = async (requestData: any) => {
+    if (!userId) {
+      alert("Authentication error: User ID not found.")
+      return
+    }
     try {
-      await apiService.createSwapRequest(requestData)
-      alert('Swap request sent successfully!')
+      const response = await requestSwap(requestData, userId) // Pass Clerk userId as requesterId
+      if (response.success) {
+        alert("Swap request sent successfully!")
+      } else {
+        throw new Error(response.error || "Failed to send swap request.")
+      }
     } catch (error) {
-      console.error('Error submitting swap request:', error)
-      alert('Failed to send swap request. Please try again.')
+      console.error("Error submitting swap request:", error)
+      alert("Failed to send swap request. Please try again.")
     }
   }
 
-  const handleViewProfile = (userId:any) => {
-    console.log('Viewing profile:', userId)
-    window.location.href = `/browse/user/profile/${userId}`;
+  const handleViewProfile = (targetUserId: string) => {
+    console.log("Viewing profile:", targetUserId)
+    router.push(`/browse/user/profile/${targetUserId}`)
   }
 
   if (loading) {
@@ -564,11 +507,7 @@ export default function BrowsePage() {
           </h1>
           <p className="text-gray-600">
             Discover talented people ready to share their skills
-            {usingFallback && (
-              <span className="ml-2 text-amber-600 text-sm">
-                (Demo mode - showing sample users)
-              </span>
-            )}
+            {usingFallback && <span className="ml-2 text-amber-600 text-sm">(Demo mode - showing sample users)</span>}
           </p>
         </div>
 
@@ -585,10 +524,10 @@ export default function BrowsePage() {
                 className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm focus:shadow-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
               />
             </div>
-            <button className="flex items-center justify-center px-6 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
+            {/* <button className="flex items-center justify-center px-6 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
               <Filter className="w-4 h-4 mr-2" />
               Filters
-            </button>
+            </button> */}
           </div>
 
           {/* Category Pills */}
@@ -649,16 +588,13 @@ export default function BrowsePage() {
         )}
 
         {/* Modals */}
-        <LoginModal 
-          isOpen={showLoginModal} 
-          onClose={() => setShowLoginModal(false)} 
-        />
-        
-        <RequestSwapModal 
-          isOpen={showRequestModal} 
+        <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+
+        <RequestSwapModal
+          isOpen={showRequestModal}
           onClose={() => setShowRequestModal(false)}
           targetUser={selectedUser}
-          currentUser={authService.getCurrentUser()}
+          currentUser={currentUserProfile} // Pass the actual current user profile
           onSubmit={handleSubmitSwapRequest}
         />
       </div>

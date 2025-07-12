@@ -1,437 +1,655 @@
-'use client';
+"use client"
 
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
-import { AppLayout } from '@/components/app-layout';
-import { Star, Eye, UserCheck, Award, MessageSquare, Share2, Heart, Zap, Trophy, Users, Clock, MapPin, TrendingUp, Calendar, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-// import { RequestSwapModal } from '@/components/request-swap-modal';
-// import { authService } from '@/lib/auth';
+import { useEffect, useState } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card"
+import { AppLayout } from "@/components/app-layout"
+import { Star, MessageSquare, Users, Clock, MapPin, Plus, X, LogIn, Send, ArrowLeft, Loader2, Badge, Sparkles, Globe, Calendar } from "lucide-react"
+import { useAuth } from "@clerk/nextjs"
+import { getUserById, requestSwap } from "@/lib/api"
+import Link from "next/link"
 
 type Rating = {
-  score: number;
-  feedback: string;
-  rated_at: string;
-};
+  score: number
+  feedback: string
+  rated_at: string
+}
 
-type User = {
-  _id: string;
-  username: string;
-  fullname: string;
-  email: string;
-  clerk_id: string;
-  address: string;
-  profile_url: string;
-  skills_offered: string[];
-  skills_wanted: string[];
-  availability: string;
-  is_public: boolean;
-  is_banned: boolean;
-  rating: number;
-  role: string;
-  ratings: Rating[];
-};
+type UserProfile = {
+  _id: string
+  username: string
+  fullname: string
+  email: string
+  clerk_id: string
+  address: string
+  profile_url: string
+  skills_offered: string[]
+  skills_wanted: string[]
+  availability: string
+  is_public: boolean
+  is_banned: boolean
+  rating: number
+  role: string
+  ratings: Rating[]
+  rating_count?: number
+  bio?: string
+}
 
-export default function ProfilePage() {
-  const { userId } = useParams();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showRequestModal, setShowRequestModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+// Enhanced Skill Display Component with modern animations
+const SkillDisplay = ({ skills, variant = "secondary", maxDisplay = 2 }) => {
+  const [showAll, setShowAll] = useState(false)
+  const displaySkills = showAll ? skills : skills.slice(0, maxDisplay)
+  const hasMore = skills.length > maxDisplay
 
-  const BASE_URL = 'https://880292e0-c3fc-4e31-b50c-c0d805539c08-00-2ygnkil1bylzo.pike.replit.dev';
+  const getSkillStyle = (variant: string) => {
+    const styles = {
+      secondary: "bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 text-emerald-700 border border-emerald-200/50 hover:from-emerald-500/20 hover:to-emerald-600/20 hover:border-emerald-300/70 hover:shadow-emerald-500/20",
+      outline: "bg-gradient-to-r from-blue-500/10 to-indigo-600/10 text-blue-700 border border-blue-200/50 hover:from-blue-500/20 hover:to-indigo-600/20 hover:border-blue-300/70 hover:shadow-blue-500/20"
+    }
+    return styles[variant] || styles.secondary
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2 relative" onMouseLeave={() => setShowAll(false)}>
+      {displaySkills.map((skill, index) => (
+        <span
+          key={index}
+          className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg ${getSkillStyle(variant)}`}
+        >
+          <Sparkles className="w-3 h-3 mr-1.5 opacity-60" />
+          {skill}
+        </span>
+      ))}
+      {hasMore && !showAll && (
+        <span
+          className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-gray-100 to-gray-200 border border-gray-300/50 text-gray-700 cursor-pointer hover:from-gray-200 hover:to-gray-300 hover:shadow-lg transition-all duration-300 hover:scale-105"
+          onMouseEnter={() => setShowAll(true)}
+        >
+          <Plus className="w-3 h-3 mr-1" />
+          {skills.length - maxDisplay} more
+        </span>
+      )}
+    </div>
+  )
+}
+
+// Enhanced Login Modal with modern glassmorphism
+const LoginModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-md w-full shadow-2xl border border-white/20 animate-in fade-in-0 zoom-in-95 duration-300">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Login Required
+          </h2>
+          <button 
+            onClick={onClose} 
+            className="p-2 hover:bg-gray-100/80 rounded-full transition-all duration-200 hover:scale-110"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="text-center mb-6">
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <LogIn className="w-8 h-8 text-white" />
+          </div>
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            Join our community to request skill swaps and connect with talented individuals.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <a
+            href="/sign-in"
+            className="group w-full flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+          >
+            <LogIn className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+            Get Started
+          </a>
+          <button
+            onClick={onClose}
+            className="w-full flex items-center justify-center px-6 py-3 border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl transition-all duration-200 hover:scale-105"
+          >
+            Maybe Later
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Enhanced Request Swap Modal
+const RequestSwapModal = ({ isOpen, onClose, targetUser, currentUser, onSubmit }) => {
+  const [message, setMessage] = useState("")
+  const [selectedOfferedSkill, setSelectedOfferedSkill] = useState("")
+  const [selectedWantedSkill, setSelectedWantedSkill] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    if (!selectedOfferedSkill || !selectedWantedSkill || !message.trim()) {
+      alert("Please fill in all fields")
+      return
+    }
+
+    setLoading(true)
+    try {
+      await onSubmit({
+        receiver_id: targetUser.clerk_id,
+        requester_message: message.trim(),
+        offered_skill: selectedOfferedSkill,
+        wanted_skill: selectedWantedSkill,
+      })
+      onClose()
+      setMessage("")
+      setSelectedOfferedSkill("")
+      setSelectedWantedSkill("")
+    } catch (error) {
+      console.error("Error submitting swap request:", error)
+      alert("Failed to send request. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!isOpen || !targetUser || !currentUser) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-md w-full shadow-2xl border border-white/20 max-h-[90vh] overflow-y-auto animate-in fade-in-0 zoom-in-95 duration-300">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Request Skill Swap
+          </h2>
+          <button 
+            onClick={onClose} 
+            className="p-2 hover:bg-gray-100/80 rounded-full transition-all duration-200 hover:scale-110"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="mb-6">
+          <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200/50">
+            <div className="relative">
+              <img
+                src={targetUser.profile_url || "/placeholder.svg"}
+                alt={targetUser.fullname}
+                className="w-14 h-14 rounded-xl object-cover ring-2 ring-blue-200"
+              />
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">{targetUser.fullname}</h3>
+              <p className="text-sm text-gray-500">@{targetUser.username}</p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-900">
+              Your Skill to Offer
+            </label>
+            <select
+              value={selectedOfferedSkill}
+              onChange={(e) => setSelectedOfferedSkill(e.target.value)}
+              className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white/80 backdrop-blur-sm transition-all duration-200"
+              required
+            >
+              <option value="">Select a skill you want to offer</option>
+              {currentUser.skills_offered?.map((skill, index) => (
+                <option key={index} value={skill}>
+                  {skill}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-900">
+              Skill You Want to Learn
+            </label>
+            <select
+              value={selectedWantedSkill}
+              onChange={(e) => setSelectedWantedSkill(e.target.value)}
+              className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white/80 backdrop-blur-sm transition-all duration-200"
+              required
+            >
+              <option value="">Select a skill you want to learn</option>
+              {targetUser.skills_offered?.map((skill, index) => (
+                <option key={index} value={skill}>
+                  {skill}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-900">
+              Your Message
+            </label>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Tell them about your skills and what you'd like to learn..."
+              className="w-full p-4 border border-gray-200 rounded-xl resize-none h-32 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white/80 backdrop-blur-sm transition-all duration-200"
+              required
+            />
+          </div>
+
+          <div className="flex space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl transition-all duration-200 hover:scale-105"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4 mr-2" />
+              )}
+              Send Request
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+export default function UserProfilePage() {
+  const { userId: currentClerkUserId, isSignedIn } = useAuth()
+  const router = useRouter()
+  const params = useParams()
+  const targetUserId = params.userId as string
+
+  const [targetUser, setTargetUser] = useState<UserProfile | null>(null)
+  const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showRequestModal, setShowRequestModal] = useState(false)
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const loadUserProfile = async () => {
+      setLoading(true)
+      setError(null)
       try {
-        const res = await fetch(`${BASE_URL}/users/${userId}`);
-        if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
-        const userData = await res.json();
-        setUser(userData);
-        setSelectedUser(userData);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (userId) fetchUser();
-  }, [userId]);
+        const fetchedTargetUserResponse = await getUserById(targetUserId, currentClerkUserId || undefined)
+        if (fetchedTargetUserResponse.success) {
+          setTargetUser(fetchedTargetUserResponse.data)
+        } else {
+          throw new Error(fetchedTargetUserResponse.error || "Failed to fetch target user profile")
+        }
 
-  const handleSubmitSwapRequest = async (requestData: any) => {
-    // Handle swap request submission
-    console.log('Swap request submitted:', requestData);
-    setShowRequestModal(false);
-  };
+        if (isSignedIn && currentClerkUserId) {
+          const fetchedCurrentUserProfileResponse = await getUserById(currentClerkUserId, currentClerkUserId)
+          if (fetchedCurrentUserProfileResponse.success) {
+            setCurrentUserProfile(fetchedCurrentUserProfileResponse.data)
+          } else {
+            console.error("Failed to fetch current user profile:", fetchedCurrentUserProfileResponse.error)
+            setCurrentUserProfile({
+              clerk_id: currentClerkUserId,
+              fullname: "Your Profile",
+              skills_offered: [],
+            } as UserProfile)
+          }
+        }
+      } catch (err: any) {
+        console.error("Failed to load user profile:", err)
+        setError(err.message || "Failed to load user profile. Please try again.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (targetUserId) {
+      loadUserProfile()
+    }
+  }, [targetUserId, currentClerkUserId, isSignedIn])
+
+  const getLocationFromAddress = (address: any) => {
+    if (!address) return "Location not specified"
+    const parts = address.split(",")
+    return parts.length >= 2 ? parts[parts.length - 2].trim() + ", " + parts[parts.length - 1].trim() : address
+  }
 
   const handleRequestSwap = () => {
-    setShowRequestModal(true);
-  };
+    if (!isSignedIn) {
+      setShowLoginModal(true)
+      return
+    }
+    if (!currentUserProfile || !currentUserProfile.skills_offered || currentUserProfile.skills_offered.length === 0) {
+      alert("Please complete your profile by adding skills you offer before requesting a swap.")
+      router.push("/profile/complete")
+      return
+    }
+    setShowRequestModal(true)
+  }
+
+  const handleSubmitSwapRequest = async (requestData: any) => {
+    if (!currentClerkUserId) {
+      alert("Authentication error: User ID not found.")
+      return
+    }
+    try {
+      const response = await requestSwap(requestData, currentClerkUserId)
+      if (response.success) {
+        alert("Swap request sent successfully!")
+      } else {
+        throw new Error(response.error || "Failed to send swap request.")
+      }
+    } catch (error) {
+      console.error("Error submitting swap request:", error)
+      alert("Failed to send swap request. Please try again.")
+    }
+  }
 
   if (loading) {
     return (
       <AppLayout>
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 text-lg">Loading profile...</p>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="text-center">
+                <div className="relative mx-auto mb-8">
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full animate-pulse"></div>
+                  <div className="absolute inset-0 w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full animate-ping opacity-30"></div>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Loading Profile</h3>
+                <p className="text-gray-600">Fetching user information...</p>
+              </div>
             </div>
           </div>
         </div>
       </AppLayout>
-    );
+    )
   }
 
   if (error) {
     return (
       <AppLayout>
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <div className="text-red-500 text-6xl mb-4">⚠️</div>
-              <p className="text-red-600 text-xl font-medium">{error}</p>
-              <p className="text-gray-500 mt-2">Please try again later</p>
+        <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="text-center">
+                <div className="text-red-500 text-8xl mb-6">⚠️</div>
+                <h3 className="text-2xl font-bold text-red-600 mb-2">Something went wrong</h3>
+                <p className="text-red-500 text-lg mb-4">{error}</p>
+                <p className="text-gray-500">Please try again later</p>
+              </div>
             </div>
           </div>
         </div>
       </AppLayout>
-    );
+    )
+  }
+
+  if (!targetUser) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="text-center py-20">
+              <div className="text-gray-400 text-8xl mb-6">👤</div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">User not found</h3>
+              <p className="text-gray-500 mb-8">The profile you're looking for doesn't exist.</p>
+              <Link
+                href="/browse"
+                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+              >
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                Back to Browse
+              </Link>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    )
   }
 
   return (
     <AppLayout>
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {user && (
-          <>
-            {/* Hero Section */}
-            <div className="mb-8">
-              <Card className="bg-white/80 backdrop-blur-xl border border-gray-200 shadow-xl rounded-3xl overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 h-24"></div>
-                <CardContent className="relative p-8">
-                  {/* Profile Image */}
-                  <div className="absolute -top-12 left-8">
-                    <div className="w-24 h-24 rounded-3xl border-4 border-white shadow-xl overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600">
-                      {user.profile_url ? (
-                        <img 
-                          src={user.profile_url} 
-                          alt={user.fullname}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white text-2xl font-bold">
-                          {user.fullname.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <div className="max-w-5xl mx-auto px-6 py-8">
+          {/* Header */}
+          <div className="mb-8 flex items-center justify-between">
+            <Link 
+              href="/browse" 
+              className="group inline-flex items-center text-gray-600 hover:text-blue-600 transition-all duration-200 hover:scale-105"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
+              Back to Browse
+            </Link>
+            <div className="w-24"></div> {/* Spacer for centering */}
+          </div>
 
-                  <div className="ml-36 flex justify-between items-start">
-                    <div className="flex-1">
-                      <h1 className="text-3xl font-bold text-gray-900 mb-2">{user.fullname}</h1>
-                      <p className="text-gray-600 text-lg mb-1">@{user.username}</p>
-                      <div className="flex items-center text-gray-500 mb-3">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        <span>{user.address}</span>
+          {/* Main Profile Card */}
+          <div className="bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl rounded-3xl p-8 mb-8 relative overflow-hidden">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-600/5"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-indigo-600/10 rounded-full blur-3xl -translate-y-32 translate-x-32"></div>
+            
+            <div className="relative z-10">
+              {/* Profile Header */}
+              <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 mb-8">
+                <div className="relative group">
+                  <div className="w-32 h-32 rounded-full overflow-hidden ring-4 ring-blue-200/50 shadow-xl group-hover:ring-blue-300/70 transition-all duration-300">
+                    <img
+                      src={targetUser.profile_url || "/placeholder.svg?height=128&width=128"}
+                      alt={targetUser.fullname}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+                    <Badge className="w-4 h-4 text-white" />
+                  </div>
+                </div>
+                
+                <div className="text-center lg:text-left flex-1">
+                  <div className="mb-4">
+                    <h2 className="text-4xl font-bold text-gray-900 mb-2">{targetUser.fullname}</h2>
+                    <p className="text-xl text-gray-500 mb-3">@{targetUser.username}</p>
+                    
+                    <div className="flex items-center justify-center lg:justify-start gap-4 text-sm text-gray-600 mb-4">
+                      <div className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-1.5 text-blue-500" />
+                        <span>{getLocationFromAddress(targetUser.address)}</span>
                       </div>
-                      <div className="flex items-center space-x-6 mb-4">
-                        <div className="flex items-center">
-                          <Star className="w-5 h-5 text-yellow-500 mr-1" />
-                          <span className="text-gray-900 font-semibold">{user.rating}</span>
-                          <span className="text-gray-500 ml-1">rating</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Trophy className="w-5 h-5 text-orange-500 mr-1" />
-                          <span className="text-gray-900 font-semibold">{user.ratings.length}</span>
-                          <span className="text-gray-500 ml-1">reviews</span>
-                        </div>
+                      <div className="flex items-center">
+                        <Globe className="w-4 h-4 mr-1.5 text-green-500" />
+                        <span>Available</span>
                       </div>
                     </div>
                     
-                    <div className="flex space-x-3">
-                      <Button 
-                        onClick={handleRequestSwap}
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                      >
-                        <Zap className="w-5 h-5 mr-2" />
-                        Request Swap
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100 px-6 py-3 rounded-xl"
-                      >
-                        <MessageSquare className="w-5 h-5 mr-2" />
-                        Message
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100 px-4 py-3 rounded-xl"
-                      >
-                        <Share2 className="w-5 h-5" />
-                      </Button>
+                    <div className="flex items-center justify-center lg:justify-start">
+                      <div className="flex items-center bg-yellow-50 px-4 py-2 rounded-full border border-yellow-200">
+                        <Star className="w-5 h-5 text-yellow-500 mr-2 fill-current" />
+                        <span className="font-bold text-yellow-700">{targetUser.rating}</span>
+                        <span className="text-sm text-yellow-600 ml-1">
+                          ({targetUser.ratings?.length || 0} reviews)
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {[
-                { 
-                  title: 'Overall Rating', 
-                  value: `${user.rating}★`, 
-                  change: `From ${user.ratings.length} reviews`,
-                  icon: Star, 
-                  bgGradient: 'from-yellow-50 to-orange-100',
-                  iconBg: 'bg-yellow-500'
-                },
-                { 
-                  title: 'Profile Views', 
-                  value: '2.5K', 
-                  change: '+12% this week',
-                  icon: Eye, 
-                  bgGradient: 'from-blue-50 to-blue-100',
-                  iconBg: 'bg-blue-500'
-                },
-                {
-                  title: 'Skills Offered',
-                  value: user.skills_offered.length.toString(),
-                  change: 'Active skills',
-                  icon: UserCheck,
-                  bgGradient: 'from-emerald-50 to-emerald-100',
-                  iconBg: 'bg-emerald-500'
-                },
-                {
-                  title: 'Skills Wanted',
-                  value: user.skills_wanted.length.toString(),
-                  change: 'Learning goals',
-                  icon: Award,
-                  bgGradient: 'from-purple-50 to-purple-100',
-                  iconBg: 'bg-purple-500'
-                },
-              ].map((stat, index) => (
-                <Card key={index} className={`bg-gradient-to-br ${stat.bgGradient} border-0 hover:shadow-xl transition-all duration-300 transform hover:scale-105 shadow-lg rounded-2xl`}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                        <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
-                      </div>
-                      <div className={`w-12 h-12 ${stat.iconBg} rounded-2xl flex items-center justify-center shadow-lg`}>
-                        <stat.icon className="w-6 h-6 text-white" />
-                      </div>
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <TrendingUp className="w-4 h-4 text-emerald-600 mr-1" />
-                      <span className="text-emerald-600 font-medium">{stat.change}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Skills Section */}
-              <div className="lg:col-span-2 space-y-6">
-                <Card className="bg-white/80 backdrop-blur-xl border border-gray-200 shadow-xl rounded-3xl">
-                  <CardHeader className="flex flex-row items-center justify-between pb-4">
-                    <CardTitle className="text-gray-900 text-xl font-bold flex items-center">
-                      <div className="w-8 h-8 rounded-2xl bg-emerald-500 flex items-center justify-center mr-3">
-                        <UserCheck className="w-4 h-4 text-white" />
-                      </div>
-                      Skills I Offer
-                    </CardTitle>
-                    {/* <Button size="sm" variant="outline" className="bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 rounded-xl">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Skill
-                    </Button> */}
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-3">
-                      {user.skills_offered.map((skill, i) => (
-                        <span 
-                          key={i} 
-                          className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-medium border border-emerald-200 hover:border-emerald-300 transition-all duration-200"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white/80 backdrop-blur-xl border border-gray-200 shadow-xl rounded-3xl">
-                  <CardHeader className="flex flex-row items-center justify-between pb-4">
-                    <CardTitle className="text-gray-900 text-xl font-bold flex items-center">
-                      <div className="w-8 h-8 rounded-2xl bg-purple-500 flex items-center justify-center mr-3">
-                        <Award className="w-4 h-4 text-white" />
-                      </div>
-                      Skills I Want to Learn
-                    </CardTitle>
-                    {/* <Button size="sm" variant="outline" className="bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 rounded-xl">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Goal
-                    </Button> */}
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-3">
-                      {user.skills_wanted.map((skill, i) => (
-                        <span 
-                          key={i} 
-                          className="px-4 py-2 bg-purple-50 text-purple-700 rounded-xl text-sm font-medium border border-purple-200 hover:border-purple-300 transition-all duration-200"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <div className="w-6 h-6 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg mr-3"></div>
+                    Skills Offered
+                  </h3>
+                  <div className="min-h-[80px] flex items-center">
+                    <SkillDisplay skills={targetUser.skills_offered || []} variant="secondary" maxDisplay={8} />
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg mr-3"></div>
+                    Skills Wanted
+                  </h3>
+                  <div className="min-h-[80px] flex items-center">
+                    <SkillDisplay skills={targetUser.skills_wanted || []} variant="outline" maxDisplay={8} />
+                  </div>
+                </div>
               </div>
 
-              {/* Sidebar */}
-              <div className="space-y-6">
-                {/* Quick Actions */}
-                {/* <Card className="bg-white/80 backdrop-blur-xl border border-gray-200 shadow-xl rounded-3xl">
-                  <CardHeader>
-                    <CardTitle className="text-gray-900 text-lg font-bold flex items-center">
-                      <Zap className="w-5 h-5 mr-2 text-blue-600" />
-                      Quick Actions
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Button 
-                      onClick={handleRequestSwap}
-                      className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg border-0 rounded-xl"
-                    >
-                      <Zap className="w-4 h-4 mr-2" />
-                      Request Skill Swap
-                    </Button>
-                    <Button variant="outline" className="w-full bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 rounded-xl">
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Send Message
-                    </Button>
-                    <Button variant="outline" className="w-full bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 rounded-xl">
-                      <Heart className="w-4 h-4 mr-2" />
-                      Add to Favorites
-                    </Button>
-                  </CardContent>
-                </Card> */}
-
-                {/* Availability */}
-                <Card className="bg-white/80 backdrop-blur-xl border border-gray-200 shadow-xl rounded-3xl">
-                  <CardHeader>
-                    <CardTitle className="text-gray-900 text-lg font-bold flex items-center">
-                      <Calendar className="w-5 h-5 mr-2 text-orange-600" />
-                      Availability
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm font-semibold text-emerald-900">Available</div>
-                          <Clock className="w-4 h-4 text-emerald-600" />
-                        </div>
-                        <div className="text-xs text-emerald-600">{user.availability}</div>
-                      </div>
-                      {/* <div className="text-sm text-gray-600">
-                        <div className="flex items-center justify-between py-2">
-                          <span>Response Time</span>
-                          <span className="font-medium text-gray-900">~2 hours</span>
-                        </div>
-                        <div className="flex items-center justify-between py-2">
-                          <span>Active Swaps</span>
-                          <span className="font-medium text-gray-900">3</span>
-                        </div>
-                      </div> */}
+              {/* Bio and Availability */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg mr-3"></div>
+                    About
+                  </h3>
+                  <div className="bg-gray-50/80 rounded-2xl p-6 border border-gray-200/50">
+                    <p className="text-gray-700 leading-relaxed">
+                      {targetUser.bio || "This user hasn't added a bio yet, but their skills speak for themselves!"}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <div className="w-6 h-6 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg mr-3"></div>
+                    Availability
+                  </h3>
+                  <div className="bg-gray-50/80 rounded-2xl p-6 border border-gray-200/50">
+                    <div className="flex items-center">
+                      <Calendar className="w-5 h-5 text-orange-500 mr-3" />
+                      <p className="text-gray-700">
+                        {targetUser.availability || "Flexible scheduling available"}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              {currentClerkUserId !== targetUserId && (
+                <div className="mt-8">
+                  <button
+                    onClick={handleRequestSwap}
+                    className="group w-full flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105"
+                  >
+                    <MessageSquare className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" />
+                    Request Skill Swap
+                    <div className="ml-3 w-2 h-2 bg-white/30 rounded-full group-hover:bg-white/50 transition-colors"></div>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Reviews Section */}
+          <div className="bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl rounded-3xl overflow-hidden">
+            <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 p-6 border-b border-yellow-200/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center mr-4">
+                    <Star className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">Reviews & Feedback</h3>
+                    <p className="text-gray-600">What others say about their experience</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-gray-900">{targetUser.rating}</div>
+                  <div className="flex items-center justify-end mb-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-4 h-4 ${i < Math.floor(targetUser.rating) ? "text-yellow-500 fill-current" : "text-gray-300"}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {targetUser.ratings?.length || 0} reviews
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Reviews Section */}
-            <div className="mt-8">
-              <Card className="bg-white/80 backdrop-blur-xl border border-gray-200 shadow-xl rounded-3xl">
-                <CardHeader className="flex flex-row items-center justify-between pb-4">
-                  <CardTitle className="text-gray-900 text-xl font-bold flex items-center">
-                    <div className="w-8 h-8 rounded-2xl bg-yellow-500 flex items-center justify-center mr-3">
-                      <Star className="w-4 h-4 text-white" />
-                    </div>
-                    Reviews & Feedback
-                  </CardTitle>
-                  <div className="flex items-center space-x-2">
-                    <div className="text-sm text-gray-600">
-                      <span className="font-semibold text-gray-900">{user.rating}</span> out of 5 stars
-                    </div>
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className={`w-4 h-4 ${i < Math.floor(user.rating) ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} 
-                        />
-                      ))}
-                    </div>
+            <div className="p-6">
+              {targetUser.ratings?.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Users className="w-10 h-10 text-gray-400" />
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {user.ratings.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 text-lg font-medium">No reviews yet</p>
-                      <p className="text-gray-500 text-sm mt-1">Be the first to leave a review after a skill swap!</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {user.ratings.map((rating, i) => (
-                        <div key={i} className="p-6 bg-gray-50/80 rounded-2xl border border-gray-200/50 hover:bg-gray-100/80 transition-all duration-200">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center space-x-3">
-                              <div className="flex">
-                                {[...Array(5)].map((_, starIndex) => (
-                                  <Star
-                                    key={starIndex}
-                                    className={`w-4 h-4 ${
-                                      starIndex < rating.score
-                                        ? 'text-yellow-500 fill-current'
-                                        : 'text-gray-300'
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                              <span className="text-gray-900 font-semibold">{rating.score}/5</span>
+                  <h4 className="text-xl font-semibold text-gray-900 mb-2">No reviews yet</h4>
+                  <p className="text-gray-500 mb-6">Be the first to work with {targetUser.fullname} and leave a review!</p>
+                  <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-700 rounded-xl border border-blue-200/50">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    New member
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {targetUser.ratings.map((rating, index) => (
+                    <div key={index} className="bg-gradient-to-r from-gray-50/50 to-white/50 rounded-2xl p-6 border border-gray-200/50 hover:shadow-md transition-all duration-300">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center">
+                          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mr-4">
+                            <span className="text-white font-bold">
+                              {rating.feedback.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="flex items-center mb-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-4 h-4 ${i < rating.score ? "text-yellow-500 fill-current" : "text-gray-300"}`}
+                                />
+                              ))}
                             </div>
-                            <div className="flex items-center text-gray-500 text-sm">
-                              <Clock className="w-4 h-4 mr-1" />
-                              {new Date(rating.rated_at).toLocaleDateString()}
+                            <div className="text-sm text-gray-500">
+                              {new Date(rating.rated_at).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
                             </div>
                           </div>
-                          <p className="text-gray-700 leading-relaxed">{rating.feedback}</p>
                         </div>
-                      ))}
+                        <div className="text-2xl font-bold text-gray-900">{rating.score}</div>
+                      </div>
+                      <p className="text-gray-700 leading-relaxed">{rating.feedback}</p>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                  ))}
+                </div>
+              )}
             </div>
-          </>
-        )}
+          </div>
+        </div>
 
-        {/* Request Swap Modal */}
-        {/* {selectedUser && (
-          <RequestSwapModal 
-            isOpen={showRequestModal} 
-            onClose={() => setShowRequestModal(false)}
-            targetUser={selectedUser}
-            currentUser={authService.getCurrentUser()}
-            onSubmit={handleSubmitSwapRequest}
-          />
-        )} */}
+        {/* Modals */}
+        <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
+        <RequestSwapModal
+          isOpen={showRequestModal}
+          onClose={() => setShowRequestModal(false)}
+          targetUser={targetUser}
+          currentUser={currentUserProfile}
+          onSubmit={handleSubmitSwapRequest}
+        />
       </div>
     </AppLayout>
-  );
+  )
 }

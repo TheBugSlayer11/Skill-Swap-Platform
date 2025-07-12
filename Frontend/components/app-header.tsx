@@ -46,14 +46,14 @@ export function AppHeader() {
 
               {/* Only visible if signed in */}
               <SignedIn>
-                <Link
+                {/* <Link
                   href="/dashboard"
                   className={`text-sm font-medium transition-colors hover:text-blue-600 ${
                     pathname === "/dashboard" ? "text-blue-600" : "text-gray-600"
                   }`}
                 >
                   Dashboard
-                </Link>
+                </Link> */}
                 <Link
                   href="/swaps"
                   className={`text-sm font-medium transition-colors hover:text-blue-600 ${
@@ -68,6 +68,7 @@ export function AppHeader() {
                     pathname === "/profile" ? "text-blue-600" : "text-gray-600"
                   }`}
                 >
+                  {/* <User className="w-4 h-4" /> */}
                   Profile
                 </Link>
               </SignedIn>
@@ -95,7 +96,7 @@ export function AppHeader() {
 
             {/* Signed in: Message, Bell, Profile, User Button */}
             <SignedIn>
-              <Link href="/swaps">
+              {/* <Link href="/swaps">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -103,15 +104,15 @@ export function AppHeader() {
                 >
                   <MessageSquare className="w-4 h-4" />
                 </Button>
-              </Link>
-              <Button
+              </Link> */}
+              {/* <Button
                 variant="ghost"
                 size="sm"
                 className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl"
               >
                 <Bell className="w-4 h-4" />
-              </Button>
-              <Link href="/profile">
+              </Button> */}
+              {/* <Link href="/profile">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -119,7 +120,7 @@ export function AppHeader() {
                 >
                   <User className="w-4 h-4" />
                 </Button>
-              </Link>
+              </Link> */}
               <UserButton afterSignOutUrl="/" />
             </SignedIn>
           </div>

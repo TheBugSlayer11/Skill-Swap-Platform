@@ -41,11 +41,11 @@ export default function HomePage() {
                 </Link>
               </SignedOut>
               <SignedIn>
-                <Link href="/dashboard">
+                {/* <Link href="/dashboard">
                   <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
                     Dashboard
                   </Button>
-                </Link>
+                </Link> */}
                 <Link href="/browse">
                   <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
                     Browse Skills
@@ -248,7 +248,7 @@ export default function HomePage() {
                 </Button>
               </Link>
             </SignedOut>
-            <SignedIn>
+            {/* <SignedIn>
               <Link href="/dashboard">
                 <Button
                   size="lg"
@@ -259,7 +259,7 @@ export default function HomePage() {
                   <ArrowRight className="ml-3 w-6 h-6" />
                 </Button>
               </Link>
-            </SignedIn>
+            </SignedIn> */}
           </div>
 
           <div className="mt-12 flex items-center justify-center space-x-8 text-blue-200">

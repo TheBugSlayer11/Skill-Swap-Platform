@@ -20,23 +20,22 @@ export default function SignInPage() {
               <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                 <Zap className="w-7 h-7 text-white" />
               </div>
-              <span className="text-3xl font-bold text-white">HackTemplate</span>
+              <span className="text-3xl font-bold text-white">SkillSwap</span>
             </Link>
 
             <h1 className="text-5xl font-bold mb-6 leading-tight">
-              Welcome back to the <span className="text-blue-200">future</span>
+              Welcome back to the <span className="text-blue-200">Skill Exchange</span>
             </h1>
 
             <p className="text-xl text-blue-100 mb-8 leading-relaxed">
-              Continue building amazing projects with the most powerful hackathon template. Your next breakthrough is
-              just a login away.
+              Continue connecting with like-minded learners. Share your skills, learn from others, and grow your network.
             </p>
 
             <div className="space-y-4">
               {[
-                { icon: Shield, text: "Enterprise-grade security" },
-                { icon: Users, text: "Join 10,000+ developers" },
-                { icon: Star, text: "Win more hackathons" },
+                { icon: Shield, text: "Safe & secure community" },
+                { icon: Users, text: "Thousands of skill swappers" },
+                { icon: Star, text: "Grow your reputation & feedback" },
               ].map((feature, index) => (
                 <div key={index} className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center">
@@ -59,7 +58,7 @@ export default function SignInPage() {
                   <Zap className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  HackTemplate
+                  SkillSwap
                 </span>
               </Link>
             </div>
@@ -67,7 +66,7 @@ export default function SignInPage() {
             {/* Header */}
             <div className="text-center">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back! 👋</h1>
-              <p className="text-gray-600">Sign in to continue your journey</p>
+              <p className="text-gray-600">Sign in to manage your skill swaps</p>
             </div>
 
             {/* Sign In Form */}
@@ -95,7 +94,6 @@ export default function SignInPage() {
                       formButtonReset: "text-blue-600 hover:text-blue-700",
                     },
                   }}
-                  // Check existing users and handle new users
                   redirectUrl="/api/auth/after-auth"
                 />
               </CardContent>

@@ -137,7 +137,7 @@ export default function CompleteProfilePage() {
       const response = await updateUser(userId, payload)
 
       if (response.success) {
-        router.push("/dashboard")
+        router.push("/browse")
       } else {
         setError(response.error || "Failed to update profile")
       }
