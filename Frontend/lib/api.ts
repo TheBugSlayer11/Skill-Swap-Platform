@@ -107,7 +107,12 @@ export async function getAllUsers(): Promise<ApiResponse> {
 
 export async function getUserById(userId: string): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/${userId}`)
+    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
 
     if (response.ok) {
       const data = await response.json()
@@ -122,10 +127,11 @@ export async function getUserById(userId: string): Promise<ApiResponse> {
         message: "User not found",
       }
     } else {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
   } catch (error) {
-    console.error("Error checking user:", error)
+    console.error("Error fetching user:", error)
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",
@@ -143,16 +149,16 @@ export async function updateUser(userId: string, payload: UpdateUserPayload): Pr
       body: JSON.stringify(payload),
     })
 
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.message || `HTTP error! status: ${response.status}`)
-    }
-
-    return {
-      success: true,
-      data,
-      message: "User updated successfully",
+    if (response.ok) {
+      const data = await response.json()
+      return {
+        success: true,
+        data,
+        message: "User updated successfully",
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
   } catch (error) {
     console.error("Error updating user:", error)
@@ -248,12 +254,13 @@ export async function uploadProfilePhoto(userId: string, photoFile: File): Promi
 }
 
 // Swap API Functions
-export async function requestSwap(swapData: SwapRequest): Promise<ApiResponse> {
+export async function requestSwap(swapData: SwapRequest, userId: string): Promise<ApiResponse> {
   try {
     const response = await fetch(`${API_BASE_URL}/swaps/request`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-clerk-user-id": userId,
       },
       body: JSON.stringify(swapData),
     })
@@ -278,9 +285,16 @@ export async function requestSwap(swapData: SwapRequest): Promise<ApiResponse> {
   }
 }
 
-export async function getMySwaps(): Promise<ApiResponse> {
+export async function getMySwaps(userId: string): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/swaps/my-swaps`)
+    const response = await fetch(`${API_BASE_URL}/swaps/my-swaps`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "x-clerk-user-id": userId,
+      },
+    })
+
     const data = await response.json()
 
     if (!response.ok) {
@@ -300,10 +314,14 @@ export async function getMySwaps(): Promise<ApiResponse> {
   }
 }
 
-export async function acceptSwap(swapId: string): Promise<ApiResponse> {
+export async function acceptSwap(swapId: string, userId: string): Promise<ApiResponse> {
   try {
     const response = await fetch(`${API_BASE_URL}/swaps/accept/${swapId}`, {
       method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "x-clerk-user-id": userId,
+      },
     })
 
     const data = await response.json()
@@ -326,10 +344,14 @@ export async function acceptSwap(swapId: string): Promise<ApiResponse> {
   }
 }
 
-export async function rejectSwap(swapId: string): Promise<ApiResponse> {
+export async function rejectSwap(swapId: string, userId: string): Promise<ApiResponse> {
   try {
     const response = await fetch(`${API_BASE_URL}/swaps/reject/${swapId}`, {
       method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "x-clerk-user-id": userId,
+      },
     })
 
     const data = await response.json()
@@ -352,10 +374,14 @@ export async function rejectSwap(swapId: string): Promise<ApiResponse> {
   }
 }
 
-export async function cancelSwap(swapId: string): Promise<ApiResponse> {
+export async function cancelSwap(swapId: string, userId: string): Promise<ApiResponse> {
   try {
     const response = await fetch(`${API_BASE_URL}/swaps/cancel/${swapId}`, {
       method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "x-clerk-user-id": userId,
+      },
     })
 
     if (!response.ok) {
@@ -379,12 +405,14 @@ export async function cancelSwap(swapId: string): Promise<ApiResponse> {
 export async function submitSwapFeedback(
   swapId: string,
   feedback: { feedback?: string; rating?: number },
+  userId: string,
 ): Promise<ApiResponse> {
   try {
     const response = await fetch(`${API_BASE_URL}/swaps/feedback/${swapId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-clerk-user-id": userId,
       },
       body: JSON.stringify(feedback),
     })
@@ -409,10 +437,18 @@ export async function submitSwapFeedback(
   }
 }
 
-// Admin API Functions
-export async function getAllUsersAdmin(): Promise<ApiResponse> {
+// Admin API Functions - Updated to include admin user's Clerk ID
+export async function getAllUsersAdmin(adminUserId: string): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/admin/users`)
+    console.log("Fetching all users for admin:", adminUserId)
+    const response = await fetch(`${API_BASE_URL}/admin/users`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "x-clerk-user-id": adminUserId,
+      },
+    })
+
     const data = await response.json()
 
     if (!response.ok) {
@@ -422,6 +458,7 @@ export async function getAllUsersAdmin(): Promise<ApiResponse> {
     return {
       success: true,
       data,
+      message: "Users fetched successfully",
     }
   } catch (error) {
     console.error("Error fetching admin users:", error)
@@ -432,14 +469,20 @@ export async function getAllUsersAdmin(): Promise<ApiResponse> {
   }
 }
 
-export async function banUser(userId: string, reason?: string): Promise<ApiResponse> {
+export async function banUser(userId: string, adminUserId: string, reason?: string): Promise<ApiResponse> {
   try {
+    console.log("Banning user:", userId, "by admin:", adminUserId)
     const response = await fetch(`${API_BASE_URL}/admin/ban/${userId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
+        "x-clerk-user-id": adminUserId,
       },
-      body: JSON.stringify({ user_id: userId, reason }),
+      body: JSON.stringify({
+        user_id: userId,
+        reason: reason || "No reason provided",
+        admin_id: adminUserId,
+      }),
     })
 
     const data = await response.json()
@@ -462,9 +505,21 @@ export async function banUser(userId: string, reason?: string): Promise<ApiRespo
   }
 }
 
-export async function getAllSwapsAdmin(): Promise<ApiResponse> {
+export async function unbanUser(userId: string, adminUserId: string): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/admin/swaps`)
+    console.log("Unbanning user:", userId, "by admin:", adminUserId)
+    const response = await fetch(`${API_BASE_URL}/admin/unban/${userId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "x-clerk-user-id": adminUserId,
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        admin_id: adminUserId,
+      }),
+    })
+
     const data = await response.json()
 
     if (!response.ok) {
@@ -474,6 +529,38 @@ export async function getAllSwapsAdmin(): Promise<ApiResponse> {
     return {
       success: true,
       data,
+      message: "User unbanned successfully",
+    }
+  } catch (error) {
+    console.error("Error unbanning user:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function getAllSwapsAdmin(adminUserId: string): Promise<ApiResponse> {
+  try {
+    console.log("Fetching all swaps for admin:", adminUserId)
+    const response = await fetch(`${API_BASE_URL}/admin/swaps`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "x-clerk-user-id": adminUserId,
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+      message: "Swaps fetched successfully",
     }
   } catch (error) {
     console.error("Error fetching admin swaps:", error)
@@ -484,14 +571,21 @@ export async function getAllSwapsAdmin(): Promise<ApiResponse> {
   }
 }
 
-export async function broadcastMessage(title: string, message: string): Promise<ApiResponse> {
+export async function broadcastMessage(title: string, message: string, adminUserId: string): Promise<ApiResponse> {
   try {
+    console.log("Broadcasting message by admin:", adminUserId)
     const response = await fetch(`${API_BASE_URL}/admin/broadcast`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-clerk-user-id": adminUserId,
       },
-      body: JSON.stringify({ title, message }),
+      body: JSON.stringify({
+        title,
+        message,
+        admin_id: adminUserId,
+        timestamp: new Date().toISOString(),
+      }),
     })
 
     const data = await response.json()
@@ -507,6 +601,147 @@ export async function broadcastMessage(title: string, message: string): Promise<
     }
   } catch (error) {
     console.error("Error broadcasting message:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+// Additional Admin Functions
+export async function getAdminStats(adminUserId: string): Promise<ApiResponse> {
+  try {
+    console.log("Fetching admin stats for:", adminUserId)
+    const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "x-clerk-user-id": adminUserId,
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      data,
+      message: "Admin stats fetched successfully",
+    }
+  } catch (error) {
+    console.error("Error fetching admin stats:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function deleteSwapAdmin(swapId: string, adminUserId: string): Promise<ApiResponse> {
+  try {
+    console.log("Deleting swap:", swapId, "by admin:", adminUserId)
+    const response = await fetch(`${API_BASE_URL}/admin/swaps/${swapId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "x-clerk-user-id": adminUserId,
+      },
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    return {
+      success: true,
+      message: "Swap deleted successfully",
+    }
+  } catch (error) {
+    console.error("Error deleting swap:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function exportUsersData(adminUserId: string): Promise<ApiResponse> {
+  try {
+    console.log("Exporting users data by admin:", adminUserId)
+    const response = await fetch(`${API_BASE_URL}/admin/export/users`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "x-clerk-user-id": adminUserId,
+      },
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    // Handle file download
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `users_export_${new Date().toISOString().split("T")[0]}.csv`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+
+    return {
+      success: true,
+      message: "Users data exported successfully",
+    }
+  } catch (error) {
+    console.error("Error exporting users data:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    }
+  }
+}
+
+export async function exportSwapsData(adminUserId: string): Promise<ApiResponse> {
+  try {
+    console.log("Exporting swaps data by admin:", adminUserId)
+    const response = await fetch(`${API_BASE_URL}/admin/export/swaps`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "x-clerk-user-id": adminUserId,
+      },
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.message || `HTTP error! status: ${response.status}`)
+    }
+
+    // Handle file download
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `swaps_export_${new Date().toISOString().split("T")[0]}.csv`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+
+    return {
+      success: true,
+      message: "Swaps data exported successfully",
+    }
+  } catch (error) {
+    console.error("Error exporting swaps data:", error)
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",
