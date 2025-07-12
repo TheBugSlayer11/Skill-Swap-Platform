@@ -1,6 +1,6 @@
-# 🚀 Hackathon Template
+# 🤝 SkillSwap Platform
 
-A beautiful Next.js template with authentication, onboarding, and stunning UI for hackathons!
+A comprehensive skill exchange platform where users can offer their expertise and learn new skills through peer-to-peer swaps!
 
 ## 🛠️ Setup Instructions
 
@@ -14,8 +14,8 @@ A beautiful Next.js template with authentication, onboarding, and stunning UI fo
    \`\`\`
 
 4. **Set up your Backend API:**
-   - Make sure your backend is running on `http://localhost:8000`
-   - Update `NEXT_PUBLIC_API_URL` in `.env.local` if different
+   - Make sure your backend is running on the URL specified in `.env.local`
+   - The backend should implement all the API routes for users, swaps, and admin functions
 
 5. **Set up Clerk Authentication:**
    - Go to [clerk.com](https://clerk.com)
@@ -27,7 +27,7 @@ A beautiful Next.js template with authentication, onboarding, and stunning UI fo
    \`\`\`env
    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_key_here
    CLERK_SECRET_KEY=your_secret_key_here
-   NEXT_PUBLIC_API_URL=http://localhost:8000
+   NEXT_PUBLIC_API_URL=your_backend_url_here
    \`\`\`
 
 6. **Run the project:**
@@ -47,53 +47,99 @@ npm install --legacy-peer-deps
 
 ## ✨ What's Included
 
-- 🏠 Beautiful landing page
-- 🔐 Login/signup pages with Clerk
-- 👤 **Clerk username collection** (configured in Clerk dashboard)
-- 🎯 **Onboarding flow** that uses Clerk username + collects additional info
-- 📊 Dashboard with stats and projects
-- 👤 Profile page with backend integration
-- 🎨 Tailwind CSS styling
-- 📱 Fully responsive design
-- 🛡️ Protected routes
-- 🔗 **Backend API integration** for user management
+### 🎯 **Core Features**
+- 🏠 **Beautiful landing page** with skill-focused messaging
+- 🔐 **Authentication** with Clerk (username collection enabled)
+- 👤 **Profile completion flow** for new users
+- 📊 **Dashboard** with swap statistics and recent activity
+- 🔍 **Browse skills** with search and filtering
+- 💬 **Swap management** (request, accept, reject, cancel)
+- ⭐ **Rating system** and user feedback
+- 👑 **Admin dashboard** for user and platform management
 
-## 🔄 Simplified User Flow
+### 📱 **User Experience**
+- 🎨 **Modern UI** with Tailwind CSS and shadcn/ui
+- 📱 **Fully responsive** design
+- 🛡️ **Protected routes** and authentication
+- 🔄 **Real-time updates** and notifications
+- 📸 **Profile photo upload** via Cloudinary integration
 
-1. **Landing Page** → User sees beautiful homepage
-2. **Sign In** → If account exists, user signs in
-3. **Sign Up** → If no account, redirects to sign up
-4. **Clerk Username Collection** → Clerk collects username (first time only)
-5. **Automatic API Call** → Backend user creation happens automatically
-6. **Dashboard** → User redirected to dashboard immediately
+### 🔄 **User Flow**
 
-## 🎯 Backend Integration
+1. **Landing Page** → User discovers the platform
+2. **Sign Up/In** → Clerk handles authentication
+3. **Profile Completion** → New users complete their profile with skills
+4. **Dashboard** → View swap activity and statistics
+5. **Browse Skills** → Find users with desired skills
+6. **Request Swaps** → Send skill exchange requests
+7. **Manage Swaps** → Accept/reject requests, provide feedback
 
-The template automatically calls your backend API immediately after signup:
+### 🛠️ **Backend Integration**
 
-**After Clerk Username Collection:**
-\`\`\`bash
-POST http://localhost:8000/users
-{
-  "username": "parth_03",           // From Clerk username
-  "fullname": "Parth Thakkar",      // From Clerk name
-  "clerk_id": "clrk_6789",          // From Clerk user ID
-  "address": "",                    // Empty initially
-  "profile_url": "https://profile-image-url"  // From Clerk or generated
-}
-\`\`\`
+The platform integrates with your backend API for:
 
-**For Existing Users:**
-- Checks if user exists in backend
-- If exists, directly goes to dashboard
-- If not exists, creates user then goes to dashboard
+**User Management:**
+- `POST /users/` - Create new user
+- `GET /users/{user_id}` - Get user profile
+- `PUT /users/{user_id}` - Update user profile
+- `POST /users/{user_id}/upload-photo` - Upload profile photo
+- `POST /users/{user_id}/rate` - Rate a user
 
-## ⚙️ Clerk Configuration Required
+**Swap Management:**
+- `POST /swaps/request` - Send swap request
+- `GET /swaps/my-swaps` - Get user's swaps
+- `PUT /swaps/accept/{swap_id}` - Accept swap
+- `PUT /swaps/reject/{swap_id}` - Reject swap
+- `DELETE /swaps/cancel/{swap_id}` - Cancel swap
+- `POST /swaps/feedback/{swap_id}` - Submit feedback
 
-In your Clerk Dashboard:
-1. Go to **User & Authentication** → **Email, Phone, Username**
-2. **Enable "Username"** 
-3. Set username as **"Required"** for sign-up
-4. This ensures Clerk collects username before API call
+**Admin Functions:**
+- `GET /admin/users` - List all users
+- `PUT /admin/ban/{user_id}` - Ban user
+- `GET /admin/swaps` - Monitor all swaps
+- `POST /admin/broadcast` - Send platform messages
 
-No separate onboarding page needed - everything happens automatically! 🚀
+### 🎯 **Key Features**
+
+#### **For Users:**
+- ✅ Create detailed profiles with skills offered/wanted
+- ✅ Set availability and privacy preferences
+- ✅ Browse and search other users by skills
+- ✅ Send and manage swap requests
+- ✅ Rate and provide feedback after swaps
+- ✅ Upload and manage profile photos
+
+#### **For Admins:**
+- ✅ Monitor all users and their activities
+- ✅ Ban inappropriate users with reasons
+- ✅ View and track all swap requests
+- ✅ Send platform-wide announcements
+- ✅ Export user and swap data
+
+### 🔒 **Security & Privacy**
+- 🛡️ **Secure authentication** with Clerk
+- 🔐 **Private/public profile** options
+- 🚫 **User banning** and moderation tools
+- 📊 **Admin oversight** of all platform activity
+
+## 🚀 **Getting Started**
+
+1. **Complete your profile** with skills you can offer and want to learn
+2. **Browse the community** to find interesting skill exchanges
+3. **Send swap requests** to users whose skills interest you
+4. **Accept requests** from others who want to learn from you
+5. **Exchange skills** through video calls, meetings, or projects
+6. **Rate and review** your experience to help the community
+
+## 🎉 **Perfect for:**
+- 🎓 **Students** wanting to learn new skills
+- 💼 **Professionals** expanding their expertise
+- 🎨 **Creatives** sharing and learning artistic skills
+- 💻 **Developers** teaching and learning technologies
+- 🌍 **Anyone** interested in skill exchange and community learning
+
+---
+
+**Built with:** Next.js 15, React 19, TypeScript, Tailwind CSS, shadcn/ui, Clerk Auth
+
+**Ready to start swapping skills?** 🤝✨
