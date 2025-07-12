@@ -83,7 +83,7 @@ export default function HomePage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6 mb-16">
-            <SignedOut>
+            {/* <SignedOut>
               <Link href="/sign-up">
                 <Button
                   size="lg"
@@ -94,8 +94,8 @@ export default function HomePage() {
                   <ArrowRight className="ml-3 w-6 h-6" />
                 </Button>
               </Link>
-            </SignedOut>
-            <SignedIn>
+            </SignedOut> */}
+            {/* <SignedIn> */}
               <Link href="/browse">
                 <Button
                   size="lg"
@@ -106,15 +106,7 @@ export default function HomePage() {
                   <ArrowRight className="ml-3 w-6 h-6" />
                 </Button>
               </Link>
-            </SignedIn>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 px-10 py-6 text-xl bg-white/80 backdrop-blur-sm transform hover:scale-105 transition-all duration-200 rounded-2xl shadow-lg"
-            >
-              <Globe className="mr-3 w-6 h-6" />
-              Explore Community
-            </Button>
+            {/* </SignedIn> */}
           </div>
 
           {/* Stats */}

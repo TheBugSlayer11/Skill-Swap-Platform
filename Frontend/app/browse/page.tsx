@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { AppLayout } from "@/components/app-layout"
 import { Search, Filter, MapPin, Star, MessageSquare, User, Plus, Loader2, X, LogIn, Send } from "lucide-react"
 
 // Static fallback users data
@@ -94,7 +95,7 @@ const MOCK_CURRENT_USER = {
 
 // API Service for backend integration
 const apiService = {
-  baseURL: 'http://localhost:8000',
+  baseURL: 'https://880292e0-c3fc-4e31-b50c-c0d805539c08-00-2ygnkil1bylzo.pike.replit.dev',
 
   async getAllUsers() {
     try {
@@ -143,29 +144,29 @@ const authService = {
 }
 
 // App Layout Component
-const AppLayout = ({ children }) => {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold text-blue-600">SkillSwap</h1>
-          <div className="flex space-x-4">
-            <button className="px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors">
-              Dashboard
-            </button>
-            <button className="px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors">
-              Profile
-            </button>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-              Login
-            </button>
-          </div>
-        </div>
-      </nav>
-      {children}
-    </div>
-  )
-}
+// const AppLayout = ({ children }) => {
+//   return (
+//     <div className="min-h-screen bg-gray-50">
+//       <nav className="bg-white border-b border-gray-200 px-6 py-4">
+//         <div className="max-w-7xl mx-auto flex justify-between items-center">
+//           <h1 className="text-xl font-bold text-blue-600">SkillSwap</h1>
+//           <div className="flex space-x-4">
+//             <button className="px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors">
+//               Dashboard
+//             </button>
+//             <button className="px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors">
+//               Profile
+//             </button>
+//             <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+//               Login
+//             </button>
+//           </div>
+//         </div>
+//       </nav>
+//       {children}
+//     </div>
+//   )
+// }
 
 // Skill Display Component
 const SkillDisplay = ({ skills, variant = "secondary", maxDisplay = 2 }) => {
@@ -499,7 +500,7 @@ export default function BrowsePage() {
   // Filter users based on search and category
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user?.fullname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.skills_offered.some((skill) => skill.toLowerCase().includes(searchTerm.toLowerCase())) ||
       user.skills_wanted.some((skill) => skill.toLowerCase().includes(searchTerm.toLowerCase()))
