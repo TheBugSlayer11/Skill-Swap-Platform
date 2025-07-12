@@ -27,7 +27,7 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     fullname: "",
     username: "",
-    email: user?.emailAddresses[0]?.emailAddress || "",
+    email: "",
     address: "",
     skillsOffered: [] as string[],
     skillsWanted: [] as string[],
@@ -35,30 +35,40 @@ export default function ProfilePage() {
     isPublic: true,
     rating: 0,
     profileUrl: "",
+    clerkId: "",
+    role: "user",
+    isBanned: false,
   })
 
   const [newSkillOffered, setNewSkillOffered] = useState("")
   const [newSkillWanted, setNewSkillWanted] = useState("")
 
-  // Load user data from backend and Clerk
+  // Load user data from backend on component mount
   useEffect(() => {
     if (userId && user) {
-      loadUserData()
+      loadUserDataFromBackend()
     }
   }, [userId, user])
 
-  const loadUserData = async () => {
+  const loadUserDataFromBackend = async () => {
     if (!userId || !user) return
 
     setIsLoading(true)
+    setError("")
+
     try {
+      console.log("Fetching user data from backend for userId:", userId)
       const response = await getUserById(userId)
+
       if (response.success && response.data) {
         const userData = response.data
+        console.log("Backend user data:", userData)
+
+        // Map backend data to form state
         setFormData({
-          fullname: userData.fullname || user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-          username: userData.username || user.username || "",
-          email: userData.email || user.emailAddresses[0]?.emailAddress || "",
+          fullname: userData.fullname || "",
+          username: userData.username || "",
+          email: userData.email || "",
           address: userData.address || "",
           skillsOffered: userData.skills_offered || [],
           skillsWanted: userData.skills_wanted || [],
@@ -66,29 +76,57 @@ export default function ProfilePage() {
           isPublic: userData.is_public ?? true,
           rating: userData.rating || 0,
           profileUrl: userData.profile_url || "",
+          clerkId: userData.clerk_id || "",
+          role: userData.role || "user",
+          isBanned: userData.is_banned || false,
         })
-        // Use uploaded photo if available, otherwise use Clerk photo
+
+        // Set profile photo preview - use backend photo if available, otherwise Clerk photo
         setProfilePhotoPreview(userData.profile_url || user.imageUrl || "")
       } else {
-        // If no backend data, use Clerk data
-        setFormData((prev) => ({
-          ...prev,
+        // If user not found in backend, use Clerk data as fallback
+        console.log("User not found in backend, using Clerk data as fallback")
+        setFormData({
           fullname: user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim(),
           username: user.username || "",
           email: user.emailAddresses[0]?.emailAddress || "",
-        }))
+          address: "",
+          skillsOffered: [],
+          skillsWanted: [],
+          availability: "",
+          isPublic: true,
+          rating: 0,
+          profileUrl: "",
+          clerkId: user.id,
+          role: "user",
+          isBanned: false,
+        })
         setProfilePhotoPreview(user.imageUrl || "")
+        setError("Profile not found in backend. Please complete your profile setup.")
       }
     } catch (error) {
-      console.error("Error loading user data:", error)
-      // Fallback to Clerk data
-      setFormData((prev) => ({
-        ...prev,
-        fullname: user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-        username: user.username || "",
-        email: user.emailAddresses[0]?.emailAddress || "",
-      }))
-      setProfilePhotoPreview(user.imageUrl || "")
+      console.error("Error loading user data from backend:", error)
+      setError("Failed to load profile data. Please try again.")
+
+      // Fallback to Clerk data on error
+      if (user) {
+        setFormData({
+          fullname: user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+          username: user.username || "",
+          email: user.emailAddresses[0]?.emailAddress || "",
+          address: "",
+          skillsOffered: [],
+          skillsWanted: [],
+          availability: "",
+          isPublic: true,
+          rating: 0,
+          profileUrl: "",
+          clerkId: user.id,
+          role: "user",
+          isBanned: false,
+        })
+        setProfilePhotoPreview(user.imageUrl || "")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -161,35 +199,48 @@ export default function ProfilePage() {
     setSuccess("")
 
     try {
+      console.log("Saving profile changes...")
+
       // Upload profile photo first if selected
       let profileUrl = formData.profileUrl
       if (profilePhoto) {
+        console.log("Uploading profile photo...")
         const photoResponse = await uploadProfilePhoto(userId, profilePhoto)
         if (photoResponse.success && photoResponse.data?.profile_url) {
           profileUrl = photoResponse.data.profile_url
+          console.log("Profile photo uploaded successfully:", profileUrl)
+        } else {
+          console.error("Failed to upload profile photo:", photoResponse.error)
         }
       }
 
-      // Prepare payload for backend
+      // Prepare payload for backend API according to UserUpdate model
       const payload = {
         fullname: formData.fullname,
         address: formData.address,
-        profile_url: profileUrl || user?.imageUrl || "",
+        profile_url: profileUrl || user?.imageUrl || null,
         skills_offered: formData.skillsOffered,
         skills_wanted: formData.skillsWanted,
         availability: formData.availability,
         is_public: formData.isPublic,
       }
 
+      console.log("Updating user profile with payload:", payload)
       const response = await updateUser(userId, payload)
 
       if (response.success) {
+        console.log("Profile updated successfully:", response.data)
         setSuccess("Profile updated successfully!")
         setIsEditing(false)
         setProfilePhoto(null)
-        loadUserData() // Reload data
+
+        // Reload data from backend to get the latest state
+        await loadUserDataFromBackend()
+
+        // Clear success message after 3 seconds
         setTimeout(() => setSuccess(""), 3000)
       } else {
+        console.error("Failed to update profile:", response.error)
         setError(response.error || "Failed to update profile")
       }
     } catch (error) {
@@ -198,6 +249,15 @@ export default function ProfilePage() {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleCancel = () => {
+    setIsEditing(false)
+    setProfilePhoto(null)
+    setError("")
+    setSuccess("")
+    // Reload data from backend to reset any unsaved changes
+    loadUserDataFromBackend()
   }
 
   if (isLoading) {
@@ -552,11 +612,7 @@ export default function ProfilePage() {
               <div className="flex justify-end space-x-4">
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    setIsEditing(false)
-                    setProfilePhoto(null)
-                    loadUserData() // Reset form data
-                  }}
+                  onClick={handleCancel}
                   className="bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 rounded-xl px-6 py-3"
                 >
                   Cancel

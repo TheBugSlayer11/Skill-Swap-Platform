@@ -44,16 +44,30 @@ export default function SwapsPage() {
   const [activeTab, setActiveTab] = useState<"received" | "sent">("received")
 
   useEffect(() => {
-    loadSwaps()
-  }, [])
+    if (userId) {
+      loadSwaps()
+    }
+  }, [userId])
 
   const loadSwaps = async () => {
+    if (!userId) {
+      setError("User not authenticated")
+      setIsLoading(false)
+      return
+    }
+
     setIsLoading(true)
+    setError("")
+
     try {
-      const response = await getMySwaps()
+      console.log("Fetching swaps for user:", userId)
+      const response = await getMySwaps(userId)
+
       if (response.success) {
+        console.log("Swaps data received:", response.data)
         setSwaps(response.data || [])
       } else {
+        console.error("Failed to load swaps:", response.error)
         setError(response.error || "Failed to load swaps")
       }
     } catch (error) {
@@ -65,11 +79,19 @@ export default function SwapsPage() {
   }
 
   const handleAcceptSwap = async (swapId: string) => {
+    if (!userId) {
+      setError("User not authenticated")
+      return
+    }
+
     try {
-      const response = await acceptSwap(swapId)
+      console.log("Accepting swap:", swapId)
+      const response = await acceptSwap(swapId, userId)
       if (response.success) {
+        console.log("Swap accepted successfully")
         loadSwaps() // Reload swaps
       } else {
+        console.error("Failed to accept swap:", response.error)
         setError(response.error || "Failed to accept swap")
       }
     } catch (error) {
@@ -79,11 +101,19 @@ export default function SwapsPage() {
   }
 
   const handleRejectSwap = async (swapId: string) => {
+    if (!userId) {
+      setError("User not authenticated")
+      return
+    }
+
     try {
-      const response = await rejectSwap(swapId)
+      console.log("Rejecting swap:", swapId)
+      const response = await rejectSwap(swapId, userId)
       if (response.success) {
+        console.log("Swap rejected successfully")
         loadSwaps() // Reload swaps
       } else {
+        console.error("Failed to reject swap:", response.error)
         setError(response.error || "Failed to reject swap")
       }
     } catch (error) {
@@ -93,11 +123,19 @@ export default function SwapsPage() {
   }
 
   const handleCancelSwap = async (swapId: string) => {
+    if (!userId) {
+      setError("User not authenticated")
+      return
+    }
+
     try {
-      const response = await cancelSwap(swapId)
+      console.log("Cancelling swap:", swapId)
+      const response = await cancelSwap(swapId, userId)
       if (response.success) {
+        console.log("Swap cancelled successfully")
         loadSwaps() // Reload swaps
       } else {
+        console.error("Failed to cancel swap:", response.error)
         setError(response.error || "Failed to cancel swap")
       }
     } catch (error) {
@@ -106,6 +144,7 @@ export default function SwapsPage() {
     }
   }
 
+  // Filter swaps based on current user's clerk ID
   const receivedSwaps = swaps.filter((swap) => swap.receiver_id === userId)
   const sentSwaps = swaps.filter((swap) => swap.requester_id === userId)
 
@@ -156,6 +195,20 @@ export default function SwapsPage() {
     )
   }
 
+  if (!userId) {
+    return (
+      <AppLayout>
+        <div className="max-w-7xl mx-auto px-6 py-8 flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Authentication Required</h3>
+            <p className="text-gray-600">Please sign in to view your swaps.</p>
+          </div>
+        </div>
+      </AppLayout>
+    )
+  }
+
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -163,12 +216,16 @@ export default function SwapsPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">My Swaps</h1>
           <p className="text-gray-600">Manage your skill exchange requests and offers</p>
+          <p className="text-sm text-gray-500 mt-1">User ID: {userId}</p>
         </div>
 
         {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
             <p className="text-red-600 text-sm">{error}</p>
+            <Button onClick={loadSwaps} size="sm" className="mt-2 bg-red-600 hover:bg-red-700 text-white">
+              Retry
+            </Button>
           </div>
         )}
 
@@ -194,6 +251,14 @@ export default function SwapsPage() {
           </div>
         </div>
 
+        {/* Debug Info */}
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <p className="text-blue-800 text-sm">
+            <strong>Debug Info:</strong> Total swaps loaded: {swaps.length} | Received: {receivedSwaps.length} | Sent:{" "}
+            {sentSwaps.length}
+          </p>
+        </div>
+
         {/* Swaps List */}
         <div className="space-y-6">
           {(activeTab === "received" ? receivedSwaps : sentSwaps).map((swap) => (
@@ -210,13 +275,14 @@ export default function SwapsPage() {
                     <div>
                       <CardTitle className="text-lg font-bold text-gray-900">
                         {activeTab === "received"
-                          ? swap.requester_name || "Unknown User"
-                          : swap.receiver_name || "Unknown User"}
+                          ? swap.requester_name || `User ${swap.requester_id}`
+                          : swap.receiver_name || `User ${swap.receiver_id}`}
                       </CardTitle>
                       <div className="flex items-center text-sm text-gray-500">
                         <Calendar className="w-4 h-4 mr-1" />
                         {new Date(swap.created_at).toLocaleDateString()}
                       </div>
+                      <div className="text-xs text-gray-400 mt-1">Swap ID: {swap.id}</div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
@@ -339,7 +405,7 @@ export default function SwapsPage() {
         </div>
 
         {/* Empty State */}
-        {(activeTab === "received" ? receivedSwaps : sentSwaps).length === 0 && (
+        {(activeTab === "received" ? receivedSwaps : sentSwaps).length === 0 && !isLoading && (
           <div className="text-center py-12">
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Handshake className="w-12 h-12 text-gray-400" />
