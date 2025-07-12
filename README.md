@@ -1,6 +1,24 @@
 # Skill Swap Platform 🤝
 
+
 A full-stack platform for users to exchange skills, manage swap requests, and connect with others. Built with FastAPI (Backend) and Next.js (Frontend).
+
+---
+
+**Team:** Bug Slayers 🐞⚔️
+
+## Demo Video ▶️
+
+[![Skill Swap Platform Demo](https://img.youtube.com/vi/eUTK8BVW-QQ/0.jpg)](https://www.youtube.com/watch?v=eUTK8BVW-QQ)
+
+## Team Members & Contact 📧
+
+| Name           | Email                        | LinkedIn                                                                 |
+|----------------|------------------------------|--------------------------------------------------------------------------|
+| Tirth Patel    | tirthpatel4822@gmail.com     | [linkedin.com/in/tirthpatel-7ab9ba264](https://www.linkedin.com/in/tirthpatel-7ab9ba264/) |
+| Vyom Padalia   | vyompadalia028@gmail.com     | [linkedin.com/in/vyom-padalia](https://www.linkedin.com/in/vyom-padalia/?originalSubdomain=in) |
+| Neel Sheth     | shethneel2022@gmail.com      | [linkedin.com/in/neel-sheth-91b362262](https://www.linkedin.com/in/neel-sheth-91b362262/) |
+| Parth Thakkar  | parththakkar1208@gmail.com   | [linkedin.com/in/parth-thakkar-1812p5d](https://www.linkedin.com/in/parth-thakkar-1812p5d/) |
 
 ---
 
@@ -160,5 +178,3 @@ flowchart TD
    - Run: `pnpm dev` or `npm run dev`
 
 ---
-
-**Team:** Bug Slayers 🐞⚔️
